@@ -23,6 +23,12 @@ async def get_optional_user(request: Request, db: Session = Depends(get_db)) -> 
     return db.query(User).filter(User.id == user_id).first()
 
 
+async def require_approved(user: User = Depends(get_current_user)) -> User:
+    if not user.is_approved:
+        raise HTTPException(status_code=403, detail="Account pending approval")
+    return user
+
+
 async def require_admin(user: User = Depends(get_current_user)) -> User:
     if not user.is_admin:
         raise HTTPException(status_code=403, detail="Admin access required")

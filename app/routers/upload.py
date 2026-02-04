@@ -3,7 +3,7 @@ from sqlalchemy import func
 from sqlalchemy.orm import Session
 
 from app.database import get_db
-from app.dependencies import get_current_user
+from app.dependencies import get_current_user, require_approved
 from app.models import Location, PrintJob, User
 from app.utils.stl_validator import validate_stl
 from app.utils.storage import save_upload
@@ -17,7 +17,7 @@ async def upload_stl(
     request: Request,
     file: UploadFile,
     location_id: int = Form(...),
-    user: User = Depends(get_current_user),
+    user: User = Depends(require_approved),
     db: Session = Depends(get_db),
 ):
     if not file.filename or not file.filename.lower().endswith(".stl"):
@@ -63,6 +63,11 @@ async def upload_stl(
     request.session["preferred_location"] = location_id
 
     return {"id": job.id, "filename": job.filename, "status": job.status, "position": queue_position}
+
+
+@router.get("/me")
+async def me_api(user: User = Depends(get_current_user)):
+    return {"id": user.id, "is_approved": user.is_approved, "is_admin": user.is_admin}
 
 
 @router.get("/my-jobs")

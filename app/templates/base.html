@@ -19,7 +19,8 @@
             <a href="/queue" class="nav-link">Queue</a>
             <a href="/completed" class="nav-link">Completed</a>
             <a href="/locations" class="nav-link">Locations</a>
-            {% else %}
+            <a href="/users" class="nav-link nav-link-badge">Users{% if pending_count %}<span class="badge-count" id="pending-badge">{{ pending_count }}</span>{% endif %}</a>
+            {% elif user.is_approved %}
             <a href="/upload" class="nav-link">Upload</a>
             <a href="/my-jobs" class="nav-link">My Jobs</a>
             {% endif %}

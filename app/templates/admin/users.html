@@ -1,0 +1,172 @@
+{% extends "base.html" %}
+
+{% block title %}Users - Queue3D{% endblock %}
+
+{% block content %}
+<h1>Users</h1>
+
+<h2>Pending Approval{% if pending_users %} ({{ pending_users | length }}){% endif %}</h2>
+{% if not pending_users %}
+<p class="empty-state">No accounts pending approval.</p>
+{% else %}
+<table class="jobs-table">
+    <thead>
+        <tr>
+            <th></th>
+            <th>Name</th>
+            <th>Email</th>
+            <th>Provider</th>
+            <th>Provider ID</th>
+            <th>Signed Up</th>
+            <th>Actions</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for u in pending_users %}
+        <tr id="user-{{ u.id }}">
+            <td>
+                {% if u.avatar_url %}
+                <img src="{{ u.avatar_url }}" alt="" class="avatar" style="width:32px;height:32px;">
+                {% endif %}
+            </td>
+            <td>{{ u.display_name }}</td>
+            <td>{{ u.email }}</td>
+            <td>{{ u.provider }}</td>
+            <td>{{ u.provider_id }}</td>
+            <td>{{ u.created_at.strftime('%Y-%m-%d %H:%M') }}</td>
+            <td>
+                <button class="btn btn-small btn-printed" onclick="approveUser('{{ u.id }}')">Approve</button>
+                <button class="btn btn-small btn-danger" onclick="denyUser('{{ u.id }}')">Delete</button>
+            </td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+{% endif %}
+
+<h2 style="margin-top: 2rem;">Approved Users ({{ approved_users | length }})</h2>
+{% if not approved_users %}
+<p class="empty-state">No approved users.</p>
+{% else %}
+<table class="jobs-table">
+    <thead>
+        <tr>
+            <th></th>
+            <th>Name</th>
+            <th>Email</th>
+            <th>Provider</th>
+            <th>Role</th>
+            <th>Last Login</th>
+            <th>Actions</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for u in approved_users %}
+        <tr id="user-{{ u.id }}">
+            <td>
+                {% if u.avatar_url %}
+                <img src="{{ u.avatar_url }}" alt="" class="avatar" style="width:32px;height:32px;">
+                {% endif %}
+            </td>
+            <td>{{ u.display_name }}</td>
+            <td>{{ u.email }}</td>
+            <td>{{ u.provider }}</td>
+            <td>
+                {% if u.is_admin %}
+                <span class="badge badge-admin">Admin</span>
+                {% else %}
+                Student
+                {% endif %}
+            </td>
+            <td>{{ u.last_login.strftime('%Y-%m-%d %H:%M') if u.last_login else '—' }}</td>
+            <td>
+                {% if not u.is_admin %}
+                <button class="btn btn-small btn-danger-outline" onclick="disapproveUser('{{ u.id }}')">Disapprove</button>
+                {% endif %}
+            </td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+{% endif %}
+{% endblock %}
+
+{% block scripts %}
+<script>
+async function approveUser(userId) {
+    try {
+        const resp = await fetch(`/api/users/${userId}/approve`, { method: 'POST' });
+        if (resp.ok) {
+            window.location.reload();
+        } else {
+            const err = await resp.json();
+            alert(err.detail || 'Error approving user');
+        }
+    } catch (e) {
+        alert('Network error: ' + e.message);
+    }
+}
+
+async function disapproveUser(userId) {
+    if (!confirm('Disapprove this user? They will need to be re-approved to access the system.')) return;
+    try {
+        const resp = await fetch(`/api/users/${userId}/disapprove`, { method: 'POST' });
+        if (resp.ok) {
+            window.location.reload();
+        } else {
+            const err = await resp.json();
+            alert(err.detail || 'Error disapproving user');
+        }
+    } catch (e) {
+        alert('Network error: ' + e.message);
+    }
+}
+
+async function denyUser(userId) {
+    if (!confirm('Delete this user account? This cannot be undone.')) return;
+    try {
+        const resp = await fetch(`/api/users/${userId}`, { method: 'DELETE' });
+        if (resp.ok) {
+            window.location.reload();
+        } else {
+            const err = await resp.json();
+            alert(err.detail || 'Error deleting user');
+        }
+    } catch (e) {
+        alert('Network error: ' + e.message);
+    }
+}
+
+// Polling
+let lastHash = null;
+
+async function computeHash() {
+    try {
+        const resp = await fetch('/api/pending-count');
+        if (!resp.ok) return null;
+        const data = await resp.json();
+        return String(data.count);
+    } catch {
+        return null;
+    }
+}
+
+async function poll() {
+    const newHash = await computeHash();
+    if (newHash === null) return;
+    if (lastHash === null) {
+        lastHash = newHash;
+        return;
+    }
+    if (newHash !== lastHash) {
+        lastHash = newHash;
+        window.location.reload();
+    }
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+    poll();
+    setInterval(poll, 5000);
+});
+</script>
+{% endblock %}

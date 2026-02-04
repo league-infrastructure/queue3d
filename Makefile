@@ -1,4 +1,4 @@
-.PHONY: dev run decrypt decrypt-prod test lint init-db deploy down logs
+.PHONY: dev run decrypt decrypt-prod test lint init-db deploy down destroy logs
 
 dev:
 	uv run uvicorn app.main:app --reload --host 0.0.0.0 --port 8100

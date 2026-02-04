@@ -30,13 +30,15 @@ oauth.register(
 )
 
 
+def _is_league_domain(email: str) -> bool:
+    """True if email is from jointheleague.org or any subdomain."""
+    domain = email.rsplit("@", 1)[-1].lower()
+    return domain == "jointheleague.org" or domain.endswith(".jointheleague.org")
+
+
 def _determine_admin(email: str) -> bool:
-    """Admin if @jointheleague.org but NOT @students.jointheleague.org."""
-    if email.endswith("@students.jointheleague.org"):
-        return False
-    if email.endswith("@jointheleague.org"):
-        return True
-    return False
+    """Admin if @jointheleague.org exactly (not any subdomain)."""
+    return email.lower().endswith("@jointheleague.org") and "." not in email.lower().rsplit("@", 1)[-1].replace("jointheleague.org", "")
 
 
 def _upsert_user(
@@ -62,6 +64,7 @@ def _upsert_user(
             provider=provider,
             provider_id=str(provider_id),
             is_admin=_determine_admin(email),
+            is_approved=_is_league_domain(email),
             last_login=_utcnow(),
         )
         db.add(user)
@@ -69,6 +72,8 @@ def _upsert_user(
     db.refresh(user)
     return user
 
+
+# --- User login (Google + GitHub) ---
 
 @router.get("/login/google")
 async def login_google(request: Request):
@@ -129,6 +134,40 @@ async def callback_github(request: Request, db: Session = Depends(get_db)):
         avatar_url=profile.get("avatar_url"),
         provider="github",
         provider_id=str(profile["id"]),
+    )
+    request.session["user_id"] = user.id
+    return RedirectResponse(url="/", status_code=302)
+
+
+# --- Admin login (Google only, jointheleague.org) ---
+
+@router.get("/login/admin/google")
+async def login_admin_google(request: Request):
+    redirect_uri = f"{settings.EXTERNAL_URL}/auth/callback/admin/google"
+    return await oauth.google.authorize_redirect(request, redirect_uri)
+
+
+@router.get("/callback/admin/google")
+async def callback_admin_google(request: Request, db: Session = Depends(get_db)):
+    token = await oauth.google.authorize_access_token(request)
+    userinfo = token.get("userinfo", {})
+    if not userinfo:
+        userinfo = await oauth.google.userinfo(token=token)
+
+    email = userinfo["email"]
+    if not _determine_admin(email):
+        return RedirectResponse(
+            url="/auth/login?error=Admin+login+requires+a+jointheleague.org+account",
+            status_code=302,
+        )
+
+    user = _upsert_user(
+        db,
+        email=email,
+        display_name=userinfo.get("name", email),
+        avatar_url=userinfo.get("picture"),
+        provider="google",
+        provider_id=userinfo["sub"],
     )
     request.session["user_id"] = user.id
     return RedirectResponse(url="/", status_code=302)

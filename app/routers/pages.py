@@ -14,6 +14,8 @@ router = APIRouter(tags=["pages"])
 async def index(request: Request, user: User | None = Depends(get_optional_user)):
     if not user:
         return RedirectResponse(url="/auth/login", status_code=302)
+    if not user.is_approved and not user.is_admin:
+        return RedirectResponse(url="/pending", status_code=302)
     if user.is_admin:
         return RedirectResponse(url="/queue", status_code=302)
     return RedirectResponse(url="/upload", status_code=302)
@@ -25,12 +27,21 @@ async def login_page(request: Request):
     return templates.TemplateResponse("login.html", {"request": request, "user": None, "error": error})
 
 
+@router.get("/pending")
+async def pending_page(request: Request, user: User = Depends(get_current_user)):
+    if user.is_approved or user.is_admin:
+        return RedirectResponse(url="/", status_code=302)
+    return templates.TemplateResponse("student/pending.html", {"request": request, "user": user})
+
+
 @router.get("/upload")
 async def upload_page(
     request: Request,
     user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
+    if not user.is_approved and not user.is_admin:
+        return RedirectResponse(url="/pending", status_code=302)
     locations = db.query(Location).filter(Location.is_active).order_by(Location.name).all()
     preferred_location = request.session.get("preferred_location")
     return templates.TemplateResponse(
@@ -45,6 +56,8 @@ async def my_jobs_page(
     user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
+    if not user.is_approved and not user.is_admin:
+        return RedirectResponse(url="/pending", status_code=302)
     jobs = (
         db.query(PrintJob)
         .filter(PrintJob.user_id == user.id)
@@ -69,8 +82,10 @@ async def queue_page(
         .all()
     )
     locations = db.query(Location).filter(Location.is_active).order_by(Location.name).all()
+    pending_count = db.query(User).filter(User.is_approved == False).count()
     return templates.TemplateResponse(
-        "admin/queue.html", {"request": request, "user": user, "jobs": jobs, "locations": locations}
+        "admin/queue.html",
+        {"request": request, "user": user, "jobs": jobs, "locations": locations, "pending_count": pending_count},
     )
 
 
@@ -87,8 +102,10 @@ async def completed_page(
         .all()
     )
     locations = db.query(Location).filter(Location.is_active).order_by(Location.name).all()
+    pending_count = db.query(User).filter(User.is_approved == False).count()
     return templates.TemplateResponse(
-        "admin/completed.html", {"request": request, "user": user, "jobs": jobs, "locations": locations}
+        "admin/completed.html",
+        {"request": request, "user": user, "jobs": jobs, "locations": locations, "pending_count": pending_count},
     )
 
 
@@ -99,6 +116,39 @@ async def locations_page(
     db: Session = Depends(get_db),
 ):
     locations = db.query(Location).order_by(Location.name).all()
+    pending_count = db.query(User).filter(User.is_approved == False).count()
     return templates.TemplateResponse(
-        "admin/locations.html", {"request": request, "user": user, "locations": locations}
+        "admin/locations.html",
+        {"request": request, "user": user, "locations": locations, "pending_count": pending_count},
+    )
+
+
+@router.get("/users")
+async def users_page(
+    request: Request,
+    user: User = Depends(require_admin),
+    db: Session = Depends(get_db),
+):
+    pending_users = (
+        db.query(User)
+        .filter(User.is_approved == False)
+        .order_by(User.created_at.desc())
+        .all()
+    )
+    approved_users = (
+        db.query(User)
+        .filter(User.is_approved == True)
+        .order_by(User.display_name.asc())
+        .all()
+    )
+    pending_count = len(pending_users)
+    return templates.TemplateResponse(
+        "admin/users.html",
+        {
+            "request": request,
+            "user": user,
+            "pending_users": pending_users,
+            "approved_users": approved_users,
+            "pending_count": pending_count,
+        },
     )

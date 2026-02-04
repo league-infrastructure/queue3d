@@ -136,10 +136,55 @@ async function pollForUpdates() {
     }
 }
 
+// --- Pending approvals badge polling ---
+let lastPendingCount = null;
+
+async function pollPendingBadge() {
+    try {
+        const resp = await fetch('/api/pending-count');
+        if (!resp.ok) return;
+        const data = await resp.json();
+        const count = data.count;
+
+        // Update the badge in the nav
+        let badge = document.getElementById('pending-badge');
+        const link = document.querySelector('a[href="/users"]');
+        if (!link) return;
+
+        if (count > 0) {
+            if (badge) {
+                badge.textContent = count;
+                badge.style.display = '';
+            } else {
+                badge = document.createElement('span');
+                badge.className = 'badge-count';
+                badge.id = 'pending-badge';
+                badge.textContent = count;
+                link.appendChild(badge);
+            }
+        } else if (badge) {
+            badge.style.display = 'none';
+        }
+
+        if (lastPendingCount !== null && count !== lastPendingCount) {
+            // If we're on the approvals page, reload to show updated list
+            if (window.location.pathname === '/users') {
+                window.location.reload();
+            }
+        }
+        lastPendingCount = count;
+    } catch {
+        // ignore
+    }
+}
+
 // Initialize
 document.addEventListener('DOMContentLoaded', () => {
     restoreFilters();
     // First poll fetches from API to set the baseline; subsequent polls compare
     pollForUpdates();
     setInterval(pollForUpdates, 5000);
+    // Also poll for pending approvals badge
+    pollPendingBadge();
+    setInterval(pollPendingBadge, 5000);
 });

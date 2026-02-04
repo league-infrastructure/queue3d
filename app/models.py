@@ -34,6 +34,7 @@ class User(Base):
     provider: Mapped[str] = mapped_column(String, nullable=False)
     provider_id: Mapped[str] = mapped_column(String, nullable=False)
     is_admin: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
+    is_approved: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
     created_at: Mapped[datetime] = mapped_column(DateTime, nullable=False, default=_utcnow)
     last_login: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
 

@@ -1,0 +1,32 @@
+{% extends "base.html" %}
+
+{% block title %}Account Pending - Queue3D{% endblock %}
+
+{% block content %}
+<div class="pending-container">
+    <h1>Account Pending Approval</h1>
+    <p>Your account needs to be approved by an administrator before you can use Queue3D.</p>
+    <p>You're signed in as <strong>{{ user.display_name }}</strong> ({{ user.email }}).</p>
+    <p>This page will update automatically once you're approved.</p>
+    <a href="/auth/logout" class="btn btn-secondary">Sign Out</a>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+async function checkApproval() {
+    try {
+        const resp = await fetch('/api/me');
+        if (!resp.ok) return;
+        const data = await resp.json();
+        if (data.is_approved) {
+            window.location.href = '/upload';
+        }
+    } catch {
+        // ignore
+    }
+}
+
+setInterval(checkApproval, 3000);
+</script>
+{% endblock %}
