@@ -1,0 +1,60 @@
+<div class="queue-card" id="job-{{ job.id }}" data-status="{{ job.status }}" data-location-id="{{ job.location_id }}">
+    <div class="queue-card-preview">
+        <canvas class="stl-canvas"
+                data-stl-url="/api/jobs/{{ job.id }}/download"
+                data-stl-color="{{ job.color }}"
+                width="200" height="150"></canvas>
+        <button class="btn-expand" onclick="openJobModal('{{ job.id }}')" title="Expand view">
+            <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
+                <path d="M1.5 1h4a.5.5 0 0 1 0 1H2.707l3.147 3.146a.5.5 0 1 1-.708.708L2 2.707V5.5a.5.5 0 0 1-1 0v-4a.5.5 0 0 1 .5-.5zm13 0a.5.5 0 0 1 .5.5v4a.5.5 0 0 1-1 0V2.707l-3.146 3.147a.5.5 0 1 1-.708-.708L13.293 2H10.5a.5.5 0 0 1 0-1h4zm-13 13a.5.5 0 0 1-.5-.5v-4a.5.5 0 0 1 1 0v2.793l3.146-3.147a.5.5 0 1 1 .708.708L2.707 14H5.5a.5.5 0 0 1 0 1h-4zm13 0h-4a.5.5 0 0 1 0-1h2.793l-3.147-3.146a.5.5 0 0 1 .708-.708L14 13.293V10.5a.5.5 0 0 1 1 0v4a.5.5 0 0 1-.5.5z"/>
+            </svg>
+        </button>
+    </div>
+    <div class="queue-card-info">
+        <div class="queue-card-header">
+            <strong>{{ job.filename }}</strong>
+            <span class="status-badge status-{{ job.status }}">{{ job.status }}</span>
+            {% if job.fail_count > 0 %}
+            <span class="status-badge status-prev-failed">failed x{{ job.fail_count }}</span>
+            {% endif %}
+        </div>
+        <div class="queue-card-meta">
+            <span>{{ job.user.display_name }} ({{ job.user.email }})</span>
+            <span>Location: {{ job.location.name }}</span>
+            <span>{{ job.created_at.strftime('%Y-%m-%d %H:%M') }}</span>
+            <span>{{ (job.file_size / 1024 / 1024) | round(2) }} MB</span>
+        </div>
+        <div class="queue-card-actions">
+            <div class="status-buttons">
+                {% if job.status == 'queued' %}
+                <button class="btn btn-small btn-printing" onclick="updateJob('{{ job.id }}', {status:'printing'})">Start Printing</button>
+                <button class="btn btn-small btn-not-printable" onclick="updateJob('{{ job.id }}', {status:'not_printable'})">Not Printable</button>
+                {% elif job.status == 'printing' %}
+                <button class="btn btn-small btn-printed" onclick="updateJob('{{ job.id }}', {status:'printed'})">Done</button>
+                <button class="btn btn-small btn-failed" onclick="updateJob('{{ job.id }}', {status:'failed'})">Failed</button>
+                {% endif %}
+                {% if job.status in ('printed', 'not_printable', 'rejected') %}
+                <button class="btn btn-small btn-requeue" onclick="updateJob('{{ job.id }}', {status:'queued'})">Re-queue</button>
+                {% endif %}
+            </div>
+            <div class="queue-card-inline">
+                <a href="/api/jobs/{{ job.id }}/download" class="btn btn-small btn-secondary" download>Download</a>
+                <button class="btn btn-small btn-danger" onclick="rejectJob('{{ job.id }}')">Reject</button>
+                <button class="btn btn-small btn-danger-outline" onclick="deleteJob('{{ job.id }}')">Delete</button>
+            </div>
+        </div>
+        <div class="queue-card-feedback">
+            <label>Feedback:</label>
+            <input type="text" class="input input-inline"
+                   value="{{ job.feedback or '' }}"
+                   placeholder="Add feedback..."
+                   onblur="updateJob('{{ job.id }}', {feedback: this.value})"
+                   onkeydown="if(event.key==='Enter'){this.blur()}">
+        </div>
+        {% if job.status == 'rejected' and job.reject_reason %}
+        <div class="queue-card-reject">
+            <strong>Rejection reason:</strong> {{ job.reject_reason }}
+        </div>
+        {% endif %}
+    </div>
+</div>

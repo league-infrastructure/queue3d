@@ -1,0 +1,55 @@
+{% extends "base.html" %}
+
+{% block title %}Print Queue - Queue3D{% endblock %}
+
+{% block head %}
+<script type="importmap">
+{
+    "imports": {
+        "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
+        "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"
+    }
+}
+</script>
+{% endblock %}
+
+{% block content %}
+<div class="queue-header">
+    <h1>Print Queue</h1>
+    <div class="queue-filters">
+        <select id="status-filter" onchange="filterQueue()">
+            <option value="">All Statuses</option>
+            <option value="queued">Queued</option>
+            <option value="printing">Printing</option>
+        </select>
+        <select id="location-filter" onchange="filterQueue()">
+            <option value="">All Locations</option>
+            {% for loc in locations %}
+            <option value="{{ loc.id }}">{{ loc.name }}</option>
+            {% endfor %}
+        </select>
+        <button class="btn btn-secondary" onclick="location.reload()">Refresh</button>
+    </div>
+</div>
+
+{% if not jobs %}
+<p class="empty-state">The queue is empty.</p>
+{% else %}
+<div id="queue-list" class="queue-list">
+    {% for job in jobs %}
+    {% include "components/queue_card.html" %}
+    {% endfor %}
+</div>
+{% endif %}
+
+<!-- Job detail modal -->
+<dialog id="job-modal" class="job-modal">
+    <div id="job-modal-content"></div>
+</dialog>
+{% endblock %}
+
+{% block scripts %}
+<script>window.queueScope = 'active';</script>
+<script type="module" src="/static/js/stl-viewer.js"></script>
+<script src="/static/js/queue.js"></script>
+{% endblock %}

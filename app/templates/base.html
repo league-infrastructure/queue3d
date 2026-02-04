@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Queue3D{% endblock %}</title>
+    <link rel="stylesheet" href="/static/css/style.css">
+    <script src="https://unpkg.com/htmx.org@2.0.4"></script>
+    {% block head %}{% endblock %}
+</head>
+<body>
+    <nav class="navbar">
+        <div class="navbar-brand">
+            <a href="/">Queue3D</a>
+        </div>
+        {% if user %}
+        <div class="navbar-menu">
+            {% if user.is_admin %}
+            <a href="/queue" class="nav-link">Queue</a>
+            <a href="/completed" class="nav-link">Completed</a>
+            <a href="/locations" class="nav-link">Locations</a>
+            {% else %}
+            <a href="/upload" class="nav-link">Upload</a>
+            <a href="/my-jobs" class="nav-link">My Jobs</a>
+            {% endif %}
+        </div>
+        <div class="navbar-user">
+            {% if user.avatar_url %}
+            <img src="{{ user.avatar_url }}" alt="" class="avatar">
+            {% endif %}
+            <span class="user-name">{{ user.display_name }}</span>
+            {% if user.is_admin %}<span class="badge badge-admin">Admin</span>{% endif %}
+            <a href="/auth/logout" class="nav-link">Logout</a>
+        </div>
+        {% endif %}
+    </nav>
+
+    <main class="container">
+        {% block content %}{% endblock %}
+    </main>
+
+    {% block scripts %}{% endblock %}
+</body>
+</html>

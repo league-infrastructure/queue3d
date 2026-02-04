@@ -1,0 +1,30 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.pytest_cache/
+.ruff_cache/
+
+# Environment
+.env
+.venv/
+
+# Age private keys
+age-key.txt
+*.age-key
+
+# OAuth client JSON files (contain secrets)
+secrets/client_secret_*.json
+
+# Data
+data/
+*.db
+*.db-journal
+*.db-wal
+
+# IDE
+.vscode/
+.idea/
+
+# OS
+.DS_Store

@@ -1,0 +1,22 @@
+services:
+  queue3d:
+    build: .
+    expose:
+      - "8000"
+    volumes:
+      - queue3d-data:/app/data
+    environment:
+      - SOPS_AGE_KEY=${SOPS_AGE_KEY:-}
+    labels:
+      caddy: q3d.jtlapp.net
+      caddy.reverse_proxy: "{{upstreams 8000}}"
+    networks:
+      - caddy
+    restart: unless-stopped
+
+volumes:
+  queue3d-data:
+
+networks:
+  caddy:
+    external: true

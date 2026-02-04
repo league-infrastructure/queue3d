@@ -1,0 +1,23 @@
+<div class="modal-header">
+    <h2>{{ job.filename }}</h2>
+    <button class="btn btn-close" onclick="document.getElementById('job-modal').close()">&times;</button>
+</div>
+<div class="modal-body">
+    <canvas class="stl-canvas-large"
+            data-stl-url="/api/jobs/{{ job.id }}/download"
+            data-stl-color="{{ job.color }}"
+            width="700" height="500"></canvas>
+    <div class="modal-details">
+        <p><strong>Submitted by:</strong> {{ job.user.display_name }} ({{ job.user.email }})</p>
+        <p><strong>Location:</strong> {{ job.location.name }}</p>
+        <p><strong>Status:</strong> <span class="status-badge status-{{ job.status }}">{{ job.status }}</span></p>
+        <p><strong>Size:</strong> {{ (job.file_size / 1024 / 1024) | round(2) }} MB</p>
+        <p><strong>Submitted:</strong> {{ job.created_at.strftime('%Y-%m-%d %H:%M:%S') }}</p>
+        {% if job.feedback %}
+        <p><strong>Feedback:</strong> {{ job.feedback }}</p>
+        {% endif %}
+        {% if job.reject_reason %}
+        <p><strong>Rejection reason:</strong> {{ job.reject_reason }}</p>
+        {% endif %}
+    </div>
+</div>

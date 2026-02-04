@@ -1,0 +1,232 @@
+{% extends "base.html" %}
+
+{% block title %}Upload STL - Queue3D{% endblock %}
+
+{% block content %}
+<h1>Upload STL File</h1>
+
+{% if request.query_params.get('uploaded') %}
+<div class="alert alert-success" id="upload-success"
+     style="transition: opacity 0.5s ease;">
+    Uploaded successfully! Your file is #{{ request.query_params.get('uploaded') }} in the queue.
+</div>
+<script>
+setTimeout(() => {
+    const el = document.getElementById('upload-success');
+    if (el) {
+        el.style.opacity = '0';
+        setTimeout(() => el.remove(), 500);
+    }
+}, 3500);
+</script>
+{% endif %}
+
+{% if not locations %}
+<div class="alert alert-warning">
+    No printer locations are available yet. Please ask an administrator to add locations.
+</div>
+{% else %}
+<form id="upload-form" class="upload-form" enctype="multipart/form-data">
+    <div class="form-group">
+        <label for="location">Printer / Location</label>
+        <select name="location_id" id="location" required>
+            <option value="">Select a location...</option>
+            {% for loc in locations %}
+            <option value="{{ loc.id }}" {% if preferred_location == loc.id %}selected{% endif %}>{{ loc.name }}{% if loc.description %} - {{ loc.description }}{% endif %}</option>
+            {% endfor %}
+        </select>
+    </div>
+
+    <div class="form-group">
+        <label for="file">STL File</label>
+        <div class="drop-zone" id="drop-zone">
+            <p>Drag & drop your .stl file here, or click to browse</p>
+            <input type="file" name="file" id="file" accept=".stl" required>
+        </div>
+        <div id="file-info" class="file-info" style="display:none;">
+            <span id="file-name"></span>
+            <span id="file-size"></span>
+        </div>
+    </div>
+
+    <div id="preview-container" style="display:none;">
+        <canvas id="preview-canvas" width="400" height="300" style="border:1px solid #ddd; border-radius:8px; cursor:grab;"></canvas>
+    </div>
+
+    <div class="form-actions">
+        <button type="submit" class="btn btn-primary" id="submit-btn" disabled>Upload</button>
+    </div>
+
+    <div id="upload-status" class="alert" style="display:none;"></div>
+</form>
+{% endif %}
+{% endblock %}
+
+{% block scripts %}
+<script type="importmap">
+{
+    "imports": {
+        "three": "https://unpkg.com/three@0.171.0/build/three.module.js",
+        "three/addons/": "https://unpkg.com/three@0.171.0/examples/jsm/"
+    }
+}
+</script>
+<script type="module">
+import * as THREE from 'three';
+import { STLLoader } from 'three/addons/loaders/STLLoader.js';
+import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+
+const MODEL_COLORS = [0x7ec8e3, 0xb39ddb, 0xfff176, 0xffb74d, 0x81c784, 0xe57373];
+
+const fileInput = document.getElementById('file');
+const dropZone = document.getElementById('drop-zone');
+const submitBtn = document.getElementById('submit-btn');
+const fileInfo = document.getElementById('file-info');
+const uploadForm = document.getElementById('upload-form');
+const uploadStatus = document.getElementById('upload-status');
+const previewContainer = document.getElementById('preview-container');
+const previewCanvas = document.getElementById('preview-canvas');
+
+let previewViewer = null;
+
+function initPreview(file) {
+    const url = URL.createObjectURL(file);
+
+    // Clean up previous viewer
+    if (previewViewer) {
+        previewViewer.disposed = true;
+        previewViewer.controls.dispose();
+        previewViewer.renderer.dispose();
+        previewViewer.scene.traverse((obj) => {
+            if (obj.geometry) obj.geometry.dispose();
+            if (obj.material) obj.material.dispose();
+        });
+    }
+
+    const scene = new THREE.Scene();
+    scene.background = new THREE.Color(0xf5f5f5);
+
+    const camera = new THREE.PerspectiveCamera(60, previewCanvas.width / previewCanvas.height, 0.1, 10000);
+    const renderer = new THREE.WebGLRenderer({ canvas: previewCanvas, antialias: true });
+    renderer.setSize(previewCanvas.width, previewCanvas.height);
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+
+    const controls = new OrbitControls(camera, previewCanvas);
+    controls.enableDamping = true;
+    controls.autoRotate = true;
+    controls.autoRotateSpeed = 2;
+
+    scene.add(new THREE.AmbientLight(0x404040, 2));
+    const dirLight = new THREE.DirectionalLight(0xffffff, 1.5);
+    dirLight.position.set(1, 1, 1);
+    scene.add(dirLight);
+    const backLight = new THREE.DirectionalLight(0xffffff, 0.5);
+    backLight.position.set(-1, -1, -1);
+    scene.add(backLight);
+
+    const loader = new STLLoader();
+    loader.load(url, (geometry) => {
+        geometry.rotateX(-Math.PI / 2);
+        geometry.computeBoundingBox();
+        geometry.center();
+        const halfHeight = (geometry.boundingBox.max.y - geometry.boundingBox.min.y) / 2;
+        geometry.translate(0, halfHeight, 0);
+
+        const color = MODEL_COLORS[Math.floor(Math.random() * MODEL_COLORS.length)];
+        const material = new THREE.MeshPhongMaterial({ color, specular: 0x222222, shininess: 40 });
+        scene.add(new THREE.Mesh(geometry, material));
+
+        // Fit camera
+        const size = new THREE.Vector3();
+        geometry.boundingBox.getSize(size);
+        const maxDim = Math.max(size.x, size.y, size.z);
+        const fov = camera.fov * (Math.PI / 180);
+        const dist = maxDim / (2 * Math.tan(fov / 2)) * 1.5;
+        camera.position.set(dist, dist * 0.8, dist);
+        controls.target.set(0, 0, 0);
+        controls.update();
+
+        URL.revokeObjectURL(url);
+    });
+
+    const viewer = { disposed: false, controls, renderer, scene };
+    previewViewer = viewer;
+
+    function animate() {
+        if (viewer.disposed) return;
+        requestAnimationFrame(animate);
+        controls.update();
+        renderer.render(scene, camera);
+    }
+    animate();
+
+    previewContainer.style.display = 'block';
+}
+
+if (fileInput) {
+    function handleFile(file) {
+        if (!file || !file.name.toLowerCase().endsWith('.stl')) {
+            alert('Please select a .stl file');
+            return;
+        }
+        document.getElementById('file-name').textContent = file.name;
+        document.getElementById('file-size').textContent =
+            `(${(file.size / 1024 / 1024).toFixed(2)} MB)`;
+        fileInfo.style.display = 'block';
+        submitBtn.disabled = false;
+        initPreview(file);
+    }
+
+    fileInput.addEventListener('change', (e) => handleFile(e.target.files[0]));
+
+    dropZone.addEventListener('dragover', (e) => {
+        e.preventDefault();
+        dropZone.classList.add('drag-over');
+    });
+    dropZone.addEventListener('dragleave', () => dropZone.classList.remove('drag-over'));
+    dropZone.addEventListener('drop', (e) => {
+        e.preventDefault();
+        dropZone.classList.remove('drag-over');
+        if (e.dataTransfer.files.length) {
+            fileInput.files = e.dataTransfer.files;
+            handleFile(e.dataTransfer.files[0]);
+        }
+    });
+    dropZone.addEventListener('click', () => fileInput.click());
+
+    uploadForm.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        submitBtn.disabled = true;
+        submitBtn.textContent = 'Uploading...';
+        uploadStatus.style.display = 'none';
+
+        const formData = new FormData();
+        formData.append('file', fileInput.files[0]);
+        formData.append('location_id', document.getElementById('location').value);
+
+        try {
+            const resp = await fetch('/api/upload', { method: 'POST', body: formData });
+            const data = await resp.json();
+            if (resp.ok) {
+                window.location.href = `/upload?uploaded=${data.position}`;
+                return;
+            } else {
+                let msg = 'Upload failed';
+                if (typeof data.detail === 'string') {
+                    msg = data.detail;
+                } else if (Array.isArray(data.detail)) {
+                    msg = data.detail.map(e => e.msg).join(', ');
+                }
+                throw new Error(msg);
+            }
+        } catch (err) {
+            uploadStatus.className = 'alert alert-error';
+            uploadStatus.textContent = err.message;
+            uploadStatus.style.display = 'block';
+            submitBtn.disabled = false;
+        }
+        submitBtn.textContent = 'Upload';
+    });
+}
+</script>
+{% endblock %}

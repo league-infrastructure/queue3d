@@ -1,0 +1,88 @@
+{% extends "base.html" %}
+
+{% block title %}Manage Locations - Queue3D{% endblock %}
+
+{% block content %}
+<h1>Printer Locations</h1>
+
+<div class="location-form">
+    <h3>Add Location</h3>
+    <form id="add-location-form" onsubmit="addLocation(event)">
+        <div class="form-row">
+            <input type="text" name="name" placeholder="Location name" required class="input">
+            <input type="text" name="description" placeholder="Description (optional)" class="input">
+            <button type="submit" class="btn btn-primary">Add</button>
+        </div>
+    </form>
+</div>
+
+<table class="jobs-table" id="locations-table">
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Description</th>
+            <th>Active</th>
+            <th>Actions</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for loc in locations %}
+        <tr id="loc-{{ loc.id }}">
+            <td>{{ loc.name }}</td>
+            <td>{{ loc.description or '—' }}</td>
+            <td>
+                <span class="status-badge {% if loc.is_active %}status-queued{% else %}status-rejected{% endif %}">
+                    {{ 'Active' if loc.is_active else 'Inactive' }}
+                </span>
+            </td>
+            <td>
+                {% if loc.is_active %}
+                <button class="btn btn-small btn-danger" onclick="deactivateLocation({{ loc.id }})">Deactivate</button>
+                {% else %}
+                <button class="btn btn-small btn-primary" onclick="reactivateLocation({{ loc.id }})">Reactivate</button>
+                {% endif %}
+            </td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+{% endblock %}
+
+{% block scripts %}
+<script>
+async function addLocation(e) {
+    e.preventDefault();
+    const form = e.target;
+    const name = form.name.value.trim();
+    const description = form.description.value.trim();
+    if (!name) return;
+
+    const resp = await fetch('/api/locations', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({name, description}),
+    });
+    if (resp.ok) {
+        location.reload();
+    } else {
+        const data = await resp.json();
+        alert(data.detail || 'Error adding location');
+    }
+}
+
+async function deactivateLocation(id) {
+    if (!confirm('Deactivate this location?')) return;
+    const resp = await fetch(`/api/locations/${id}`, {method: 'DELETE'});
+    if (resp.ok) location.reload();
+}
+
+async function reactivateLocation(id) {
+    const resp = await fetch(`/api/locations/${id}`, {
+        method: 'PATCH',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({is_active: true}),
+    });
+    if (resp.ok) location.reload();
+}
+</script>
+{% endblock %}
