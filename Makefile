@@ -39,5 +39,8 @@ deploy:
 down:
 	docker compose down
 
+destroy:
+	docker compose down -v --rmi all
+
 logs:
 	docker compose logs -f
