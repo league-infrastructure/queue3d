@@ -1,4 +1,4 @@
-.PHONY: dev run decrypt decrypt-prod test lint init-db deploy down destroy logs
+.PHONY: dev run load-dev load-prod save edit-dev edit-prod audit test lint init-db deploy down destroy logs
 
 dev:
 	uv run uvicorn app.main:app --reload --host 0.0.0.0 --port 8100
@@ -6,23 +6,33 @@ dev:
 run:
 	uv run uvicorn app.main:app --host 0.0.0.0 --port 8100
 
-decrypt-dev:
-	sops -d secrets/dev.env > .env
+# --- dotconfig-managed environment configuration ---
+# Source of truth: config/ (per-deploy public.env + SOPS-encrypted secrets.env).
+DEV_USER ?= eric
 
-decrypt-prod:
-	sops -d secrets/prod.env > .env
+# Assemble .env for local development (dev deploy + your local overrides).
+load-dev:
+	dotconfig load -d dev -l $(DEV_USER) --no-export
 
-encrypt-dev:
-	cp .env secrets/dev.env && sops -e -i secrets/dev.env
+# Assemble .env for production.
+load-prod:
+	dotconfig load -d prod --no-export
 
-encrypt-prod:
-	cp .env secrets/prod.env && sops -e -i secrets/prod.env
+# Round-trip .env edits back to config/ (re-encrypts secrets via SOPS).
+save:
+	dotconfig save
 
-edit-secrets-dev:
-	sops secrets/dev.env
+# Edit dev config: load, open .env in $$EDITOR, then save back.
+edit-dev:
+	dotconfig load -d dev -l $(DEV_USER) --no-export && $${EDITOR:-vi} .env && dotconfig save
 
-edit-secrets-prod:
-	sops secrets/prod.env
+# Edit prod config: load, open .env in $$EDITOR, then save back.
+edit-prod:
+	dotconfig load -d prod --no-export && $${EDITOR:-vi} .env && dotconfig save
+
+# Verify no plaintext secrets are stored under config/.
+audit:
+	dotconfig audit
 
 test:
 	uv run pytest tests/ -v

@@ -13,8 +13,11 @@ __pycache__/
 age-key.txt
 *.age-key
 
-# OAuth client JSON files (contain secrets)
-secrets/client_secret_*.json
+# OAuth client JSON files (contain secrets unless encrypted)
+**/client_secret_*.json
+
+# dotconfig — decrypted key / file material
+config/files/
 
 # Data
 data/
@@ -28,3 +31,6 @@ data/
 
 # OS
 .DS_Store
+# dotconfig — assembled env files contain decrypted secrets
+.env.*
+!.env.example

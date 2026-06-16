@@ -19,8 +19,7 @@ COPY pyproject.toml uv.lock ./
 RUN uv sync --frozen --no-dev
 
 COPY app/ app/
-COPY secrets/ secrets/
-COPY .sops.yaml .
+COPY config/ config/
 COPY entrypoint.sh .
 RUN chmod +x entrypoint.sh
 
