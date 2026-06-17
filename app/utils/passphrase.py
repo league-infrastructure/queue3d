@@ -56,6 +56,11 @@ def generate_passphrase() -> str:
     return "-".join(words)
 
 
+def random_noun() -> str:
+    """Return a single random noun, used for per-job labels like 'house 53'."""
+    return random.choice(_NOUNS)
+
+
 def normalize(value: str) -> str:
     """Normalize a passphrase for comparison.
 

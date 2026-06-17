@@ -58,6 +58,8 @@ class PrintJob(Base):
 
     id: Mapped[str] = mapped_column(String, primary_key=True, default=_new_uuid)
     user_id: Mapped[str] = mapped_column(String, ForeignKey("users.id"), nullable=False)
+    number: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    name: Mapped[str | None] = mapped_column(String, nullable=True)
     location_id: Mapped[int] = mapped_column(Integer, ForeignKey("locations.id"), nullable=False)
     filename: Mapped[str] = mapped_column(String, nullable=False)
     file_path: Mapped[str] = mapped_column(String, nullable=False)
@@ -75,6 +77,13 @@ class PrintJob(Base):
 
     user: Mapped["User"] = relationship(back_populates="jobs")
     location: Mapped["Location"] = relationship(back_populates="jobs")
+
+    @property
+    def label(self) -> str:
+        """Human-friendly handle for the job, e.g. 'house 53'."""
+        if self.number is None:
+            return self.id[:8]
+        return f"{self.name} {self.number}" if self.name else f"job {self.number}"
 
     VALID_STATUSES = {"queued", "printing", "printed", "failed", "not_printable", "rejected"}
     ACTIVE_STATUSES = {"queued", "printing"}

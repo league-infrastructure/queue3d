@@ -45,20 +45,7 @@ async def upload_page(
         return RedirectResponse(url="/pending", status_code=302)
     locations = db.query(Location).filter(Location.is_active).order_by(Location.name).all()
     preferred_location = request.session.get("preferred_location")
-    return templates.TemplateResponse(
-        "student/upload.html",
-        {"request": request, "user": user, "locations": locations, "preferred_location": preferred_location},
-    )
-
-
-@router.get("/my-jobs")
-async def my_jobs_page(
-    request: Request,
-    user: User = Depends(get_current_user),
-    db: Session = Depends(get_db),
-):
-    if not user.is_approved and not user.is_admin:
-        return RedirectResponse(url="/pending", status_code=302)
+    # My Print Jobs is now a section of this page, most recent first.
     jobs = (
         db.query(PrintJob)
         .filter(PrintJob.user_id == user.id)
@@ -66,8 +53,21 @@ async def my_jobs_page(
         .all()
     )
     return templates.TemplateResponse(
-        "student/my_jobs.html", {"request": request, "user": user, "jobs": jobs}
+        "student/upload.html",
+        {
+            "request": request,
+            "user": user,
+            "locations": locations,
+            "preferred_location": preferred_location,
+            "jobs": jobs,
+        },
     )
+
+
+@router.get("/my-jobs")
+async def my_jobs_page():
+    # My Jobs was merged into the upload page; keep the URL working.
+    return RedirectResponse(url="/upload#my-jobs", status_code=302)
 
 
 @router.get("/queue")

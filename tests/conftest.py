@@ -1,4 +1,6 @@
 import os
+import tempfile
+from pathlib import Path
 
 # Use in-memory SQLite for tests
 os.environ["DATABASE_URL"] = "sqlite://"
@@ -11,8 +13,12 @@ from sqlalchemy.orm import sessionmaker
 from sqlalchemy.pool import StaticPool
 
 from app import create_app
+from app.config import settings
 from app.database import get_db
 from app.models import Base
+
+# Keep uploaded files written during tests out of the repo's data/ dir.
+settings.UPLOAD_DIR = Path(tempfile.mkdtemp(prefix="q3d-test-uploads-"))
 
 # StaticPool keeps a single shared connection so the in-memory DB is visible
 # across threads (TestClient runs the app in a worker thread).

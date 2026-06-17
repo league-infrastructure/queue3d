@@ -451,6 +451,11 @@ body {
 }
 .passphrase-status { color: var(--gray-700); font-size: 0.9rem; margin-left: auto; }
 
+/* Student "My Print Jobs" section */
+.section-divider { margin: 2.5rem 0 1rem; border: 0; border-top: 1px solid var(--gray-200); }
+.job-label { color: var(--primary); }
+.job-filename { color: var(--gray-700); font-weight: 500; }
+
 /* Responsive */
 @media (max-width: 768px) {
     .queue-card { flex-direction: column; }

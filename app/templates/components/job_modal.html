@@ -8,6 +8,7 @@
             data-stl-color="{{ job.color }}"
             width="700" height="500"></canvas>
     <div class="modal-details">
+        <p><strong>ID:</strong> {{ job.label }}</p>
         <p><strong>Submitted by:</strong> {{ job.user.display_name }}{% if job.user.provider != 'passphrase' %} ({{ job.user.email }}){% endif %}</p>
         <p><strong>Location:</strong> {{ job.location.name }}</p>
         <p><strong>Status:</strong> <span class="status-badge status-{{ job.status }}">{{ job.status }}</span></p>

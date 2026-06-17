@@ -5,6 +5,7 @@ from sqlalchemy.orm import Session
 from app.database import get_db
 from app.dependencies import get_current_user, require_approved
 from app.models import Location, PrintJob, User
+from app.utils.passphrase import random_noun
 from app.utils.stl_validator import validate_stl
 from app.utils.storage import save_upload
 from app.config import settings
@@ -35,9 +36,13 @@ async def upload_stl(
 
     # Get next position (FIFO ordering)
     max_pos = db.query(func.max(PrintJob.position)).scalar() or 0
+    # Friendly per-job handle: a random noun + a monotonic number, e.g. "house 53".
+    next_number = (db.query(func.max(PrintJob.number)).scalar() or 0) + 1
 
     job = PrintJob(
         user_id=user.id,
+        number=next_number,
+        name=random_noun(),
         location_id=location_id,
         filename=file.filename,
         file_path="",  # set after save
@@ -62,7 +67,13 @@ async def upload_stl(
     # Remember the selected location for next upload
     request.session["preferred_location"] = location_id
 
-    return {"id": job.id, "filename": job.filename, "status": job.status, "position": queue_position}
+    return {
+        "id": job.id,
+        "label": job.label,
+        "filename": job.filename,
+        "status": job.status,
+        "position": queue_position,
+    }
 
 
 @router.get("/me")

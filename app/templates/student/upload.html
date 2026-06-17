@@ -2,13 +2,24 @@
 
 {% block title %}Upload STL - Queue3D{% endblock %}
 
+{% block head %}
+<script type="importmap">
+{
+    "imports": {
+        "three": "https://unpkg.com/three@0.171.0/build/three.module.js",
+        "three/addons/": "https://unpkg.com/three@0.171.0/examples/jsm/"
+    }
+}
+</script>
+{% endblock %}
+
 {% block content %}
 <h1>Upload STL File</h1>
 
 {% if request.query_params.get('uploaded') %}
 <div class="alert alert-success" id="upload-success"
      style="transition: opacity 0.5s ease;">
-    Uploaded successfully! Your file is #{{ request.query_params.get('uploaded') }} in the queue.
+    Uploaded successfully! Your job is <strong>{{ request.query_params.get('uploaded') }}</strong> — see it below.
 </div>
 <script>
 setTimeout(() => {
@@ -60,17 +71,22 @@ setTimeout(() => {
     <div id="upload-status" class="alert" style="display:none;"></div>
 </form>
 {% endif %}
+
+<hr class="section-divider">
+
+<h2 id="my-jobs">My Print Jobs</h2>
+{% if not jobs %}
+<p class="empty-state">You haven't submitted any print jobs yet.</p>
+{% else %}
+<div id="queue-list" class="queue-list">
+    {% for job in jobs %}
+    {% include "components/student_job_card.html" %}
+    {% endfor %}
+</div>
+{% endif %}
 {% endblock %}
 
 {% block scripts %}
-<script type="importmap">
-{
-    "imports": {
-        "three": "https://unpkg.com/three@0.171.0/build/three.module.js",
-        "three/addons/": "https://unpkg.com/three@0.171.0/examples/jsm/"
-    }
-}
-</script>
 <script type="module">
 import * as THREE from 'three';
 import { STLLoader } from 'three/addons/loaders/STLLoader.js';
@@ -208,7 +224,7 @@ if (fileInput) {
             const resp = await fetch('/api/upload', { method: 'POST', body: formData });
             const data = await resp.json();
             if (resp.ok) {
-                window.location.href = '/my-jobs?uploaded=1';
+                window.location.href = '/upload?uploaded=' + encodeURIComponent(data.label) + '#my-jobs';
                 return;
             } else {
                 let msg = 'Upload failed';
@@ -228,5 +244,21 @@ if (fileInput) {
         submitBtn.textContent = 'Upload';
     });
 }
+</script>
+<script type="module" src="/static/js/stl-viewer.js"></script>
+<script>
+// Refresh My Print Jobs when a job's status/feedback changes (admin action).
+let lastMyJobsHash = null;
+async function pollMyJobs() {
+    try {
+        const resp = await fetch('/api/my-jobs');
+        if (!resp.ok) return;
+        const jobs = await resp.json();
+        const h = jobs.map(j => `${j.id}:${j.status}:${j.feedback || ''}:${j.fail_count || 0}`).join('|');
+        if (lastMyJobsHash === null) { lastMyJobsHash = h; return; }
+        if (h !== lastMyJobsHash) { lastMyJobsHash = h; window.location.reload(); }
+    } catch (e) {}
+}
+document.addEventListener('DOMContentLoaded', () => { pollMyJobs(); setInterval(pollMyJobs, 5000); });
 </script>
 {% endblock %}

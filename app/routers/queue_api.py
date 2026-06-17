@@ -5,7 +5,7 @@ from sqlalchemy.orm import Session
 
 from app import templates
 from app.database import get_db
-from app.dependencies import require_admin
+from app.dependencies import get_current_user, require_admin
 from app.models import PrintJob, User
 from app.utils.storage import delete_upload, get_upload_path
 
@@ -138,12 +138,15 @@ async def delete_job(
 @router.get("/jobs/{job_id}/download")
 async def download_job(
     job_id: str,
-    user: User = Depends(require_admin),
+    user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
     job = db.query(PrintJob).filter(PrintJob.id == job_id).first()
     if not job:
         raise HTTPException(status_code=404, detail="Job not found")
+    # Admins can fetch any job; students may fetch only their own (for the viewer).
+    if not user.is_admin and job.user_id != user.id:
+        raise HTTPException(status_code=403, detail="Not allowed")
 
     file_path = get_upload_path(job.file_path)
     if not file_path.exists():

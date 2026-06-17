@@ -1,0 +1,28 @@
+<div class="queue-card" id="job-{{ job.id }}" data-status="{{ job.status }}" data-location-id="{{ job.location_id }}">
+    <div class="queue-card-preview">
+        <canvas class="stl-canvas"
+                data-stl-url="/api/jobs/{{ job.id }}/download"
+                data-stl-color="{{ job.color }}"
+                width="200" height="150"></canvas>
+    </div>
+    <div class="queue-card-info">
+        <div class="queue-card-header">
+            <strong class="job-label">{{ job.label }}</strong>
+            <span class="job-filename">{{ job.filename }}</span>
+            <span class="status-badge status-{{ job.status }}">{{ job.status }}</span>
+            {% if job.fail_count > 0 %}
+            <span class="status-badge status-prev-failed">failed x{{ job.fail_count }}</span>
+            {% endif %}
+        </div>
+        <div class="queue-card-meta">
+            <span>Location: {{ job.location.name }}</span>
+            <span>{{ job.created_at.strftime('%Y-%m-%d %H:%M') }}</span>
+            <span>{{ (job.file_size / 1024 / 1024) | round(2) }} MB</span>
+        </div>
+        {% if job.status == 'rejected' and job.reject_reason %}
+        <div class="queue-card-reject"><strong>Rejection reason:</strong> {{ job.reject_reason }}</div>
+        {% elif job.feedback %}
+        <div class="queue-card-meta"><strong>Feedback:</strong> {{ job.feedback }}</div>
+        {% endif %}
+    </div>
+</div>

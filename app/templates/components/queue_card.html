@@ -12,7 +12,8 @@
     </div>
     <div class="queue-card-info">
         <div class="queue-card-header">
-            <strong>{{ job.filename }}</strong>
+            <strong class="job-label">{{ job.label }}</strong>
+            <span class="job-filename">{{ job.filename }}</span>
             <span class="status-badge status-{{ job.status }}">{{ job.status }}</span>
             {% if job.fail_count > 0 %}
             <span class="status-badge status-prev-failed">failed x{{ job.fail_count }}</span>
