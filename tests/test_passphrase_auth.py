@@ -18,18 +18,27 @@ def _make_passphrase(db, phrase="alpha-beta-gamma", *, minutes=60, active=True):
 
 # --- generator / normalize ---
 
-def test_generate_passphrase_uses_known_lowercase_words():
-    from app.utils.passphrase import _ADJECTIVES, _NOUNS
+def test_generate_passphrase_logic(monkeypatch):
+    # Controlled single-token lists so the dash-join is unambiguous to assert on.
+    import app.utils.passphrase as pp
 
-    vocab = set(_ADJECTIVES) | set(_NOUNS)
-    # Sample many times to cover the random shapes/words.
+    monkeypatch.setattr(pp, "_ADJECTIVES", ["alpha", "azure"])
+    monkeypatch.setattr(pp, "_NOUNS", ["beta", "gamma"])
+    monkeypatch.setattr(pp, "_WORDS", {"adjective": pp._ADJECTIVES, "noun": pp._NOUNS})
+    allowed = {"alpha", "azure", "beta", "gamma"}
     for _ in range(50):
-        phrase = generate_passphrase()
-        parts = phrase.split("-")
+        parts = pp.generate_passphrase().split("-")
         assert 2 <= len(parts) <= 3
-        assert phrase == phrase.lower()
-        assert all(p in vocab for p in parts)
+        assert all(p in allowed for p in parts)
         assert len(parts) == len(set(parts))  # no repeated word within a phrase
+
+
+def test_generate_passphrase_from_real_lists():
+    # Real lists may contain multi-word/hyphenated entries; just sanity-check.
+    phrase = generate_passphrase()
+    assert phrase and phrase == phrase.lower()
+    assert "-" in phrase  # at least two slots joined
+    assert normalize(phrase)  # normalizes cleanly for login matching
 
 
 def test_normalize_collapses_separators_and_case():
@@ -134,7 +143,7 @@ def test_refresh_replaces_active_passphrase_and_invalidates_old(client, db):
 
     assert resp.status_code == 200
     new_phrase = resp.json()["phrase"]
-    assert 2 <= len(new_phrase.split("-")) <= 3
+    assert "-" in new_phrase
     assert new_phrase != "old-pass-phrase"
 
     db.refresh(old)
