@@ -651,7 +651,7 @@ wheels = [
 
 [[package]]
 name = "queue3d"
-version = "0.20260616.8"
+version = "0.20260616.9"
 source = { virtual = "." }
 dependencies = [
     { name = "aiosqlite" },
