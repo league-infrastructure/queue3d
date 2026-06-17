@@ -18,12 +18,18 @@ def _make_passphrase(db, phrase="alpha-beta-gamma", *, minutes=60, active=True):
 
 # --- generator / normalize ---
 
-def test_generate_passphrase_three_lowercase_words():
-    phrase = generate_passphrase()
-    parts = phrase.split("-")
-    assert len(parts) == 3
-    assert all(parts)
-    assert phrase == phrase.lower()
+def test_generate_passphrase_uses_known_lowercase_words():
+    from app.utils.passphrase import _ADJECTIVES, _NOUNS
+
+    vocab = set(_ADJECTIVES) | set(_NOUNS)
+    # Sample many times to cover the random shapes/words.
+    for _ in range(50):
+        phrase = generate_passphrase()
+        parts = phrase.split("-")
+        assert 2 <= len(parts) <= 3
+        assert phrase == phrase.lower()
+        assert all(p in vocab for p in parts)
+        assert len(parts) == len(set(parts))  # no repeated word within a phrase
 
 
 def test_normalize_collapses_separators_and_case():
