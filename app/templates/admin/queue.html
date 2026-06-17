@@ -14,6 +14,44 @@
 {% endblock %}
 
 {% block content %}
+<div class="passphrase-card" id="passphrase-card">
+    <span class="passphrase-card-label">Session passphrase</span>
+    <code class="passphrase-value" id="passphrase-value">{{ passphrase or '—' }}</code>
+    <button class="btn btn-secondary btn-small" id="passphrase-refresh" onclick="refreshPassphrase()">Refresh</button>
+    <span class="passphrase-status" id="passphrase-status" data-expires="{{ passphrase_expires_at or '' }}">
+        {% if not passphrase %}No active passphrase — click Refresh.{% endif %}
+    </span>
+</div>
+<script>
+function _ppRender() {
+    const status = document.getElementById('passphrase-status');
+    const expires = status.dataset.expires;
+    if (!expires) { status.textContent = 'No active passphrase — click Refresh.'; return; }
+    const ms = new Date(expires) - new Date();
+    if (ms <= 0) { status.textContent = 'Expired — click Refresh.'; return; }
+    const m = Math.floor(ms / 60000), s = Math.floor((ms % 60000) / 1000);
+    status.textContent = 'Expires in ' + m + 'm ' + String(s).padStart(2, '0') + 's';
+}
+async function refreshPassphrase() {
+    const btn = document.getElementById('passphrase-refresh');
+    btn.disabled = true;
+    try {
+        const resp = await fetch('/api/admin/session/passphrase/refresh', { method: 'POST' });
+        if (!resp.ok) throw new Error('failed');
+        const data = await resp.json();
+        document.getElementById('passphrase-value').textContent = data.phrase;
+        document.getElementById('passphrase-status').dataset.expires = data.expires_at;
+        _ppRender();
+    } catch (e) {
+        document.getElementById('passphrase-status').textContent = 'Refresh failed — try again.';
+    } finally {
+        btn.disabled = false;
+    }
+}
+_ppRender();
+setInterval(_ppRender, 1000);
+</script>
+
 <div class="queue-header">
     <h1>Print Queue</h1>
     <div class="queue-filters">

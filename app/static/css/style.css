@@ -428,6 +428,29 @@ body {
 .empty-state { text-align: center; color: var(--gray-500); padding: 3rem; }
 .text-error { color: var(--danger); }
 
+/* Session passphrase card (admin queue) */
+.passphrase-card {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    flex-wrap: wrap;
+    padding: 0.75rem 1rem;
+    margin-bottom: 1rem;
+    background: var(--gray-100);
+    border: 1px solid var(--gray-200);
+    border-radius: 8px;
+}
+.passphrase-card-label { font-weight: 600; color: var(--gray-700); }
+.passphrase-value {
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    font-size: 1.25rem;
+    font-weight: 700;
+    letter-spacing: 0.5px;
+    color: var(--primary);
+    user-select: all;
+}
+.passphrase-status { color: var(--gray-700); font-size: 0.9rem; margin-left: auto; }
+
 /* Responsive */
 @media (max-width: 768px) {
     .queue-card { flex-direction: column; }

@@ -1,11 +1,15 @@
+import re
+import secrets
+
 from authlib.integrations.starlette_client import OAuth
-from fastapi import APIRouter, Depends, Request
+from fastapi import APIRouter, Depends, Form, Request
 from fastapi.responses import RedirectResponse
 from sqlalchemy.orm import Session
 
 from app.config import settings
 from app.database import get_db
-from app.models import User, _utcnow
+from app.models import SessionPassphrase, User, _utcnow
+from app.utils.passphrase import ensure_utc, normalize
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 
@@ -171,6 +175,62 @@ async def callback_admin_google(request: Request, db: Session = Depends(get_db))
     )
     request.session["user_id"] = user.id
     return RedirectResponse(url="/", status_code=302)
+
+
+# --- Student login (session passphrase) ---
+
+def _slug(name: str) -> str:
+    slug = re.sub(r"[^a-z0-9]+", "-", name.lower()).strip("-")
+    return slug or "student"
+
+
+@router.post("/login/passphrase")
+async def login_passphrase(
+    request: Request,
+    name: str = Form(...),
+    passphrase: str = Form(...),
+    db: Session = Depends(get_db),
+):
+    name = name.strip()
+    if not name:
+        return RedirectResponse(
+            url="/auth/login?error=Please+enter+your+name", status_code=303
+        )
+
+    active = (
+        db.query(SessionPassphrase)
+        .filter(SessionPassphrase.is_active == True)
+        .order_by(SessionPassphrase.created_at.desc())
+        .first()
+    )
+    if (
+        not active
+        or ensure_utc(active.expires_at) <= _utcnow()
+        or normalize(passphrase) != normalize(active.phrase)
+    ):
+        return RedirectResponse(
+            url="/auth/login?error=That+passphrase+is+not+valid+or+has+expired",
+            status_code=303,
+        )
+
+    # Each passphrase login mints a lightweight, ephemeral student identity.
+    # The synthesized email only satisfies the NOT NULL + unique constraint;
+    # display_name (the entered name) is what shows on the queue.
+    user = User(
+        email=f"{_slug(name)}-{secrets.token_hex(4)}@session.local",
+        display_name=name[:80],
+        avatar_url=None,
+        provider="passphrase",
+        provider_id=secrets.token_hex(8),
+        is_admin=False,
+        is_approved=True,
+        last_login=_utcnow(),
+    )
+    db.add(user)
+    db.commit()
+    db.refresh(user)
+    request.session["user_id"] = user.id
+    return RedirectResponse(url="/", status_code=303)
 
 
 @router.get("/logout")

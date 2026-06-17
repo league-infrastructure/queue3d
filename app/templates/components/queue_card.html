@@ -19,7 +19,7 @@
             {% endif %}
         </div>
         <div class="queue-card-meta">
-            <span>{{ job.user.display_name }} ({{ job.user.email }})</span>
+            <span>{{ job.user.display_name }}{% if job.user.provider != 'passphrase' %} ({{ job.user.email }}){% endif %}</span>
             <span>Location: {{ job.location.name }}</span>
             <span>{{ job.created_at.strftime('%Y-%m-%d %H:%M') }}</span>
             <span>{{ (job.file_size / 1024 / 1024) | round(2) }} MB</span>

@@ -3,7 +3,8 @@ from sqlalchemy.orm import Session
 
 from app.database import get_db
 from app.dependencies import require_admin
-from app.models import Location, PrintJob, User
+from app.models import Location, PrintJob, SessionPassphrase, User, _utcnow
+from app.utils.passphrase import PASSPHRASE_TTL, ensure_utc, generate_passphrase
 from app.utils.storage import delete_upload
 
 router = APIRouter(prefix="/api", tags=["admin"])
@@ -150,3 +151,28 @@ async def delete_user(
     db.delete(target)
     db.commit()
     return {"ok": True}
+
+
+# --- Session passphrase ---
+
+@router.post("/admin/session/passphrase/refresh")
+async def refresh_session_passphrase(
+    user: User = Depends(require_admin),
+    db: Session = Depends(get_db),
+):
+    db.query(SessionPassphrase).filter(SessionPassphrase.is_active == True).update(
+        {SessionPassphrase.is_active: False}, synchronize_session=False
+    )
+    sp = SessionPassphrase(
+        phrase=generate_passphrase(),
+        expires_at=_utcnow() + PASSPHRASE_TTL,
+        created_by=user.id,
+    )
+    db.add(sp)
+    db.commit()
+    db.refresh(sp)
+    return {
+        "phrase": sp.phrase,
+        "expires_at": ensure_utc(sp.expires_at).isoformat(),
+        "created_at": ensure_utc(sp.created_at).isoformat(),
+    }

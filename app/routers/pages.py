@@ -5,7 +5,8 @@ from sqlalchemy.orm import Session
 from app import templates
 from app.database import get_db
 from app.dependencies import get_current_user, get_optional_user, require_admin
-from app.models import Location, PrintJob, User
+from app.models import Location, PrintJob, SessionPassphrase, User
+from app.utils.passphrase import ensure_utc
 
 router = APIRouter(tags=["pages"])
 
@@ -83,9 +84,25 @@ async def queue_page(
     )
     locations = db.query(Location).filter(Location.is_active).order_by(Location.name).all()
     pending_count = db.query(User).filter(User.is_approved == False).count()
+    active_pp = (
+        db.query(SessionPassphrase)
+        .filter(SessionPassphrase.is_active == True)
+        .order_by(SessionPassphrase.created_at.desc())
+        .first()
+    )
     return templates.TemplateResponse(
         "admin/queue.html",
-        {"request": request, "user": user, "jobs": jobs, "locations": locations, "pending_count": pending_count},
+        {
+            "request": request,
+            "user": user,
+            "jobs": jobs,
+            "locations": locations,
+            "pending_count": pending_count,
+            "passphrase": active_pp.phrase if active_pp else None,
+            "passphrase_expires_at": (
+                ensure_utc(active_pp.expires_at).isoformat() if active_pp else None
+            ),
+        },
     )
 
 

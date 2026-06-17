@@ -79,3 +79,22 @@ class PrintJob(Base):
     VALID_STATUSES = {"queued", "printing", "printed", "failed", "not_printable", "rejected"}
     ACTIVE_STATUSES = {"queued", "printing"}
     COMPLETED_STATUSES = {"printed", "not_printable", "rejected"}
+
+
+class SessionPassphrase(Base):
+    """A short, memorable phrase students type to sign in for a class session.
+
+    There is at most one active row (the current passphrase). Refreshing
+    deactivates the old row and inserts a new active one. The phrase is stored
+    in plaintext on purpose: it is a deliberately-shared, short-lived token the
+    instructor displays openly, and it must be retrievable to re-display.
+    """
+
+    __tablename__ = "session_passphrases"
+
+    id: Mapped[str] = mapped_column(String, primary_key=True, default=_new_uuid)
+    phrase: Mapped[str] = mapped_column(String, nullable=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime, nullable=False, default=_utcnow)
+    expires_at: Mapped[datetime] = mapped_column(DateTime, nullable=False)
+    created_by: Mapped[str | None] = mapped_column(String, nullable=True)
+    is_active: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True)

@@ -38,6 +38,18 @@
         </div>
     </div>
 
+    <div class="login-section">
+        <h3>Session Passphrase</h3>
+        <form class="login-passphrase-form" method="post" action="/auth/login/passphrase">
+            <input type="text" name="name" class="input" placeholder="Your name" required
+                   autocomplete="name">
+            <input type="text" name="passphrase" class="input"
+                   placeholder="Session passphrase (e.g. excitable-flower-hat)" required
+                   autocapitalize="none" autocorrect="off" spellcheck="false" autocomplete="off">
+            <button type="submit" class="btn btn-primary">Sign in</button>
+        </form>
+    </div>
+
     <div class="login-section login-section-admin">
         <h3>Admin Login</h3>
         <div class="login-buttons">
