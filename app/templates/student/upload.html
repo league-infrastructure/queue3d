@@ -208,7 +208,7 @@ if (fileInput) {
             const resp = await fetch('/api/upload', { method: 'POST', body: formData });
             const data = await resp.json();
             if (resp.ok) {
-                window.location.href = `/upload?uploaded=${data.position}`;
+                window.location.href = '/my-jobs?uploaded=1';
                 return;
             } else {
                 let msg = 'Upload failed';

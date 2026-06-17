@@ -5,6 +5,18 @@
 {% block content %}
 <h1>My Print Jobs</h1>
 
+{% if request.query_params.get('uploaded') %}
+<div class="alert alert-success" id="upload-success" style="transition: opacity 0.5s ease;">
+    Uploaded successfully! Your file is in the queue below.
+</div>
+<script>
+setTimeout(() => {
+    const el = document.getElementById('upload-success');
+    if (el) { el.style.opacity = '0'; setTimeout(() => el.remove(), 500); }
+}, 3500);
+</script>
+{% endif %}
+
 {% if not jobs %}
 <p class="empty-state">You haven't submitted any print jobs yet. <a href="/upload">Upload a file</a> to get started.</p>
 {% else %}
