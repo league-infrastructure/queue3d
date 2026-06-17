@@ -29,7 +29,7 @@
             <div class="status-buttons">
                 {% if job.status == 'queued' %}
                 <button class="btn btn-small btn-printing" onclick="updateJob('{{ job.id }}', {status:'printing'})">Start Printing</button>
-                <button class="btn btn-small btn-not-printable" onclick="updateJob('{{ job.id }}', {status:'not_printable'})">Not Printable</button>
+                <button class="btn btn-small btn-not-printable" onclick="updateJob('{{ job.id }}', {status:'not_printable'})">Mark Unprintable</button>
                 {% elif job.status == 'printing' %}
                 <button class="btn btn-small btn-printed" onclick="updateJob('{{ job.id }}', {status:'printed'})">Done</button>
                 <button class="btn btn-small btn-failed" onclick="updateJob('{{ job.id }}', {status:'failed'})">Failed</button>
