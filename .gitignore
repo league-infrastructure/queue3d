@@ -19,8 +19,8 @@ age-key.txt
 # dotconfig — decrypted key / file material
 config/files/
 
-# Data
-data/
+# Data (runtime uploads + db at repo root only; app/data/ word lists are tracked)
+/data/
 *.db
 *.db-journal
 *.db-wal
