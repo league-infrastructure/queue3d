@@ -1,0 +1,29 @@
+# Keep the build context small (esp. for remote/SSH docker builds).
+# Note: none of these are COPYed by the Dockerfile, so the image is unchanged.
+
+.git
+.venv
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.ruff_cache/
+
+# Runtime data (uploads + db) — never bake into the image
+data/
+*.db
+*.db-journal
+*.db-wal
+
+# Generated env (the image assembles its own from config/ at startup)
+.env
+.env.*
+!.env.example
+
+# Tooling / SE-process dirs not needed at runtime
+.clasi/
+.claude/
+.agents/
+.mcp.json
+.python-version
+tests/
+.DS_Store
